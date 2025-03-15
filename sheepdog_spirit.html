@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sheepdog Spirit</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background-color: #32CD32; /* Solid green field */
+        }
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB; /* Sky */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game state
+        let score = 0;
+        let lives = 5;
+        let lastBarkTime = 0;
+        const barkCooldown = 500; // 0.5 seconds in milliseconds
+        let showBarkBubble = false;
+        let barkBubbleEndTime = 0;
+
+        // Spirit (Border Collie)
+        const spirit = {
+            x: 400,
+            y: 300,
+            width: 24,
+            height: 16,
+            speed: 4
+        };
+
+        // Draw Spirit
+        function drawSpirit() {
+            ctx.fillStyle = '#101010'; // Dark outline
+            ctx.fillRect(spirit.x + 2, spirit.y + 2, spirit.width - 4, spirit.height - 4); // Body outline
+            ctx.fillStyle = 'white'; // Main fur
+            ctx.fillRect(spirit.x + 4, spirit.y + 4, spirit.width - 8, spirit.height - 6); // Body
+            ctx.fillStyle = 'black'; // Black fur patches
+            ctx.fillRect(spirit.x + 4, spirit.y + 4, 6, 4); // Head patch
+            ctx.fillRect(spirit.x + spirit.width - 8, spirit.y + 2, 6, 8); // Tail
+            ctx.fillStyle = '#606060'; // Shading
+            ctx.fillRect(spirit.x + 4, spirit.y + 8, 4, 4); // Body shade
+            ctx.fillRect(spirit.x + spirit.width - 8, spirit.y + 10, 4, 2); // Tail shade
+            ctx.fillStyle = 'black'; // Legs and ears
+            ctx.fillRect(spirit.x + 6, spirit.y + spirit.height - 4, 2, 4); // Front leg 1
+            ctx.fillRect(spirit.x + 10, spirit.y + spirit.height - 4, 2, 4); // Front leg 2
+            ctx.fillRect(spirit.x + 16, spirit.y + spirit.height - 4, 2, 4); // Back leg 1
+            ctx.fillRect(spirit.x + 22, spirit.y + spirit.height - 4, 2, 4); // Back leg 2
+            ctx.fillRect(spirit.x + 4, spirit.y, 4, 2); // Ear 1
+            ctx.fillRect(spirit.x + 8, spirit.y + 2, 2, 2); // Ear 2
+            ctx.fillStyle = 'white'; // Face
+            ctx.fillRect(spirit.x + 6, spirit.y + 4, 4, 4);
+            ctx.fillStyle = '#404040'; // Nose
+            ctx.fillRect(spirit.x + 4, spirit.y + 8, 2, 2);
+            ctx.fillStyle = '#808080'; // Eye
+            ctx.fillRect(spirit.x + 8, spirit.y + 6, 2, 2);
+            // Smoother edges
+            ctx.fillStyle = 'white';
+            ctx.fillRect(spirit.x + 2, spirit.y + 6, 2, 2); // Head curve
+            ctx.fillRect(spirit.x + spirit.width - 4, spirit.y + 4, 2, 4); // Tail curve
+
+            // Bark bubble
+            if (showBarkBubble) {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(spirit.x + spirit.width, spirit.y - 10, 30, 12); // Bubble
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText('Bark!', spirit.x + spirit.width + 2, spirit.y); // Text
+            }
+        }
+
+        // Sheep array and creation function
+        const sheepList = [];
+        function createSheep() {
+            return {
+                x: 200 + Math.random() * 500,
+                y: 50 + Math.random() * 450,
+                width: 36,
+                height: 24,
+                speed: 1,
+                directionX: (Math.random() - 0.5) * 0.5,
+                directionY: (Math.random() - 0.5) * 0.5,
+                barkedAt: 0,
+                barkDuration: 1000,
+                spooked: false
+            };
+        }
+
+        // Draw Sheep
+        function drawSheep(sheep) {
+            ctx.fillStyle = '#B0B0B0'; // Wool base
+            ctx.fillRect(sheep.x + 2, sheep.y + 2, sheep.width - 4, sheep.height - 4); // Main body
+            ctx.fillStyle = 'white'; // Wool highlights
+            ctx.fillRect(sheep.x + 4, sheep.y + 4, sheep.width - 8, sheep.height - 6); // Inner wool
+            ctx.fillStyle = '#D3D3D3'; // Wool texture
+            ctx.fillRect(sheep.x + 6, sheep.y + 6, 8, 6);
+            ctx.fillRect(sheep.x + 18, sheep.y + 8, 8, 4);
+            ctx.fillStyle = '#808080'; // Wool shading
+            ctx.fillRect(sheep.x + 4, sheep.y + sheep.height - 6, 8, 4);
+            ctx.fillRect(sheep.x + 18, sheep.y + sheep.height - 6, 8, 4);
+            ctx.fillStyle = 'black'; // Legs and face
+            ctx.fillRect(sheep.x + 6, sheep.y + sheep.height - 4, 4, 4); // Leg 1
+            ctx.fillRect(sheep.x + 12, sheep.y + sheep.height - 4, 4, 4); // Leg 2
+            ctx.fillRect(sheep.x + 20, sheep.y + sheep.height - 4, 4, 4); // Leg 3
+            ctx.fillRect(sheep.x + 28, sheep.y + sheep.height - 4, 4, 4); // Leg 4
+            ctx.fillRect(sheep.x + sheep.width - 8, sheep.y + 6, 6, 8); // Face
+            ctx.fillStyle = '#404040'; // Face shading
+            ctx.fillRect(sheep.x + sheep.width - 6, sheep.y + 8, 4, 2);
+        }
+
+        // Keyboard controls
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            ArrowDown: false,
+            Space: false
+        };
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = true;
+                if (e.code === 'Space' && score > 0) { // Only bark if score > 0
+                    const currentTime = performance.now();
+                    if (currentTime - lastBarkTime >= barkCooldown) {
+                        bark(currentTime); // Trigger bark visuals and score deduction
+                    }
+                }
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.code)) keys[e.code] = false;
+        });
+
+        // Bark function (visuals and score only)
+        function bark(timestamp) {
+            lastBarkTime = timestamp;
+            showBarkBubble = true;
+            barkBubbleEndTime = timestamp + 500; // Display for 0.5 seconds
+            score = Math.max(0, score - 5); // Deduct 5 points
+            sheepList.forEach(sheep => {
+                const dx = spirit.x - sheep.x;
+                const dy = spirit.y - sheep.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 150) { // Increased range
+                    sheep.barkedAt = timestamp;
+                    sheep.directionX = -2; // Stronger push
+                    sheep.directionY = (sheep.y < spirit.y ? -2 : 2); // Directional push
+                }
+            });
+        }
+
+        // Sheep spawning
+        let lastSpawnTime = 0;
+        const spawnInterval = 3000;
+
+        // Wall gaps (crumbling)
+        const wallGaps = [];
+        let lastCrumbleTime = 0;
+        const crumbleInterval = 10000;
+
+        // Find nearest sheep
+        function findNearestSheep(sheep) {
+            let nearest = null;
+            let minDist = Infinity;
+            sheepList.forEach(other => {
+                if (other !== sheep) {
+                    const dx = other.x - sheep.x;
+                    const dy = other.y - sheep.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist && dist > 0) {
+                        minDist = dist;
+                        nearest = other;
+                    }
+                }
+            });
+            return nearest;
+        }
+
+        // Collision with walls and fence
+        function checkCollisions(sheep) {
+            // Left wall (except gate)
+            if (sheep.x < 50 && (sheep.y + sheep.height < 300 || sheep.y > 340)) {
+                sheep.x = 50;
+                sheep.directionX = -sheep.directionX;
+            }
+
+            // Wall boundaries (allow escape through gaps)
+            if (sheep.x + sheep.width > 790 && !checkWallGapEscape(sheep)) {
+                sheep.x = 790 - sheep.width;
+                sheep.directionX = -sheep.directionX;
+            }
+            if (sheep.y < 10 && !checkWallGapEscape(sheep)) {
+                sheep.y = 10;
+                sheep.directionY = -sheep.directionY;
+            }
+            if (sheep.y + sheep.height > 590 && !checkWallGapEscape(sheep)) {
+                sheep.y = 590 - sheep.height;
+                sheep.directionY = -sheep.directionY;
+            }
+        }
+
+        // Check if sheep escapes through a wall gap
+        function checkWallGapEscape(sheep) {
+            for (let i = 0; i < wallGaps.length; i++) {
+                const gap = wallGaps[i];
+                if (sheep.x + sheep.width > gap.x && sheep.x < gap.x + gap.width &&
+                    sheep.y + sheep.height > gap.y && sheep.y < gap.y + gap.height) {
+                    return true; // Sheep is in a gap
+                }
+            }
+            return false;
+        }
+
+        // Game loop
+        function gameLoop(timestamp) {
+            // Update Spirit's position
+            if (keys.ArrowLeft) spirit.x -= spirit.speed;
+            if (keys.ArrowRight) spirit.x += spirit.speed;
+            if (keys.ArrowUp) spirit.y -= spirit.speed;
+            if (keys.ArrowDown) spirit.y += spirit.speed;
+            spirit.x = Math.max(10, Math.min(790 - spirit.width, spirit.x));
+            spirit.y = Math.max(10, Math.min(590 - spirit.height, spirit.y));
+
+            // Bark bubble timer
+            if (showBarkBubble && timestamp > barkBubbleEndTime) {
+                showBarkBubble = false;
+            }
+
+            // Spawn sheep
+            if (timestamp - lastSpawnTime > spawnInterval) {
+                sheepList.push(createSheep());
+                lastSpawnTime = timestamp;
+            }
+
+            // Crumble walls
+            if (timestamp - lastCrumbleTime > crumbleInterval) {
+                const side = Math.floor(Math.random() * 3); // 0: top, 1: right, 2: bottom
+                let gap;
+                if (side === 0) gap = { x: 50 + Math.random() * 700, y: 0, width: 20, height: 10 };
+                else if (side === 1) gap = { x: 790, y: 50 + Math.random() * 500, width: 10, height: 20 };
+                else gap = { x: 50 + Math.random() * 700, y: 590, width: 20, height: 10 };
+                wallGaps.push(gap);
+                lastCrumbleTime = timestamp;
+            }
+
+            // Update sheep positions
+            sheepList.forEach((sheep, index) => {
+                // Proximity reaction to Spirit
+                const dx = spirit.x - sheep.x;
+                const dy = spirit.y - sheep.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 100 && !sheep.spooked) {
+                    sheep.spooked = true;
+                    sheep.speed = 2;
+                    const angle = Math.atan2(dy, dx);
+                    sheep.directionX = -Math.cos(angle) * 1.5;
+                    sheep.directionY = -Math.sin(angle) * 1.5;
+                    setTimeout(() => { sheep.spooked = false; sheep.speed = 1; }, 1000);
+                }
+
+                // Herd together
+                if (sheep.spooked) {
+                    const nearest = findNearestSheep(sheep);
+                    if (nearest) {
+                        const dxNearest = nearest.x - sheep.x;
+                        const dyNearest = nearest.y - sheep.y;
+                        const distNearest = Math.sqrt(dxNearest * dxNearest + dyNearest * dyNearest);
+                        if (distNearest < 50) {
+                            sheep.directionX += dxNearest * 0.02;
+                            sheep.directionY += dyNearest * 0.02;
+                        }
+                    }
+                }
+
+                // Bark effect
+                if (timestamp - sheep.barkedAt < sheep.barkDuration) {
+                    sheep.directionX = -2; // Stronger push
+                    sheep.directionY = (sheep.y < spirit.y ? -2 : 2); // Directional push
+                } else if (!sheep.spooked) {
+                    sheep.directionX = (Math.random() - 0.5) * 0.5;
+                    sheep.directionY = (Math.random() - 0.5) * 0.5;
+                }
+
+                sheep.x += sheep.directionX;
+                sheep.y += sheep.directionY;
+                checkCollisions(sheep);
+
+                // Check gate
+                if (sheep.x > 10 && sheep.x < 50 && sheep.y > 300 && sheep.y < 340) {
+                    score += 10;
+                    sheepList.splice(index, 1);
+                }
+                // Check wall gap escape
+                else if (checkWallGapEscape(sheep)) {
+                    lives--; // Lose one life per sheep escaping through a gap
+                    sheepList.splice(index, 1);
+                }
+            });
+
+            // Draw everything
+            ctx.clearRect(0, 0, 800, 600);
+
+            // Draw stone wall
+            ctx.fillStyle = '#606060'; // Darker gray stone
+            ctx.fillRect(0, 0, 800, 10); // Top
+            ctx.fillRect(0, 590, 800, 10); // Bottom
+            ctx.fillRect(50, 0, 10, 300); // Left wall above gate
+            ctx.fillRect(50, 340, 10, 260); // Left wall below gate
+            ctx.fillRect(790, 0, 10, 600); // Right
+            ctx.fillStyle = '#808080'; // Lighter stone texture
+            for (let i = 0; i < 800; i += 20) {
+                ctx.fillRect(i, 0, 10, 5); // Top texture
+                ctx.fillRect(i, 595, 10, 5); // Bottom texture
+            }
+            for (let i = 0; i < 600; i += 20) {
+                ctx.fillRect(795, i, 5, 10); // Right texture
+                if (i < 300 || i > 340) ctx.fillRect(55, i, 5, 10); // Left texture
+            }
+
+            // Draw wall gaps
+            ctx.fillStyle = '#32CD32'; // Field color for gaps
+            wallGaps.forEach(gap => {
+                ctx.fillRect(gap.x, gap.y, gap.width, gap.height);
+            });
+
+            // Draw wooden gate (perpendicular, opening into field)
+            ctx.fillStyle = '#8B4513'; // Brown wood
+            ctx.fillRect(10, 300, 40, 10); // Top gate post
+            ctx.fillRect(10, 330, 40, 10); // Bottom gate post
+            ctx.fillStyle = '#A0522D'; // Wood texture
+            ctx.fillRect(12, 302, 8, 6); // Top texture
+            ctx.fillRect(32, 302, 8, 6); // Top texture
+            ctx.fillRect(12, 332, 8, 6); // Bottom texture
+            ctx.fillRect(32, 332, 8, 6); // Bottom texture
+
+            drawSpirit();
+            sheepList.forEach(drawSheep);
+
+            // HUD
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.fillText(`Score: ${score}`, 15, 25);
+            ctx.fillText(`Lives: ${lives}`, 725, 25);
+
+            // Game over
+            if (lives <= 0) {
+                ctx.fillStyle = 'red';
+                ctx.font = '32px Arial';
+                ctx.fillText('Game Over', 350, 300);
+                return;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
