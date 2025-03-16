@@ -4,22 +4,35 @@
     <meta charset="UTF-8">
     <title>Sheepdog Spirit</title>
     <style>
-        canvas {
-            border: 1px solid black;
-            background-color: #32CD32; /* Solid green field */
-        }
         body {
             margin: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
-            background-color: #87CEEB; /* Sky */
+            background-color: #87CEEB; /* Light blue sky background */
+            color: black; /* White text for contrast */
+        }
+        h1 {
+            margin: 20px 0;
+            font-size: 24px;
+            text-align: center;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 16px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid black;
+            background-color: #32CD32; /* Green field for the game */
         }
     </style>
 </head>
 <body>
+    <h1>Sheepdog Spirit!</h1>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <p>Use arrow keys to move Spirit. Herd sheep into the gate to score points.<br>Press space to bark (costs 5 points). Don’t let them escape through the wall gaps!</p>
+    <p>Made by <a href="https://www.catebligh.com" target="_blank">Cate Bligh</a> with <a href="https://www.grok.com" target="_blank">Grok</a></p>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
