@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
     <meta charset="UTF-8">
     <title>Sheepdog Spirit</title>
+    <link rel="stylesheet" href="https://use.typekit.net/kmh8zve.css">
     <style>
         body {
             margin: 0;
@@ -11,22 +13,30 @@
             align-items: center;
             background-color: #87CEEB; /* Light blue sky background */
             color: black; /* White text for contrast */
+            font-family: "owners-narrow", sans-serif;
         }
         h1 {
             margin: 20px 0;
-            font-size: 24px;
+            font-size: 56px;
             text-align: center;
+            font-family: "handsome-pro", sans-serif;
+            font-weight: 700;
+            font-style: normal;
         }
         p {
             margin: 10px 0;
             font-size: 16px;
             text-align: center;
+            font-family: "owners-narrow", sans-serif;
+            font-weight: 400;
+            font-style: normal;
         }
         canvas {
             border: 1px solid black;
             background-color: #32CD32; /* Green field for the game */
         }
     </style>
+    
 </head>
 <body>
     <h1>Sheepdog Spirit!</h1>
@@ -380,11 +390,11 @@
             ctx.fillRect(10, 10, 140, 30); // Background for Score
             ctx.fillRect(650, 10, 140, 30); // Background for Sheep Lost
 
-            ctx.font = '20px Arial';
+            ctx.font = '20px owners-narrow';
 
             // Draw Score in white
             ctx.fillStyle = 'white';
-            ctx.fillText(`Score: ${score}`, 20, 30);
+            ctx.fillText(`SCORE: ${score}`, 20, 30);
 
             // Determine color for Sheep Lost
             const sheepLost = 5 - lives;
@@ -401,7 +411,7 @@
 
             // Draw Sheep Lost with the determined color
             ctx.fillStyle = sheepLostColor;
-            ctx.fillText(`Sheep Lost: ${sheepLost}`, 660, 30);
+            ctx.fillText(`SHEEP LOST: ${sheepLost}`, 660, 30);
 
             // Game over condition
             if (lives <= 0) {
@@ -417,12 +427,12 @@
                 ];
 
                 // Draw game over message
-                ctx.font = '20px Arial';
+                ctx.font = '20px owners-narrow';
                 ctx.fillStyle = 'red';
                 drawMultilineText(gameOverLines, 400, 250, 30);
 
                 // Draw final score
-                ctx.font = '24px Arial';
+                ctx.font = '24px owners-narrow';
                 ctx.fillStyle = 'white';
                 const finalScoreText = `Your Final Score: ${score}`;
                 drawCenteredText(finalScoreText, 400, 350);
