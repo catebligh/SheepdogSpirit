@@ -26,7 +26,7 @@
 
         // Game state
         let score = 0;
-        let lives = 5;
+        let lives = 5; // Represents the number of sheep that can still be lost
         let lastBarkTime = 0;
         const barkCooldown = 500; // 0.5 seconds in milliseconds
         let showBarkBubble = false;
@@ -348,11 +348,15 @@
             drawSpirit();
             sheepList.forEach(drawSheep);
 
-            // HUD
+            // HUD with improved readability
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent black background
+            ctx.fillRect(10, 10, 140, 30); // Background for Score
+            ctx.fillRect(650, 10, 140, 30); // Background for Sheep Lost
+
             ctx.fillStyle = 'white';
-            ctx.font = '16px Arial';
-            ctx.fillText(`Score: ${score}`, 15, 25);
-            ctx.fillText(`Lives: ${lives}`, 725, 25);
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 20, 30);
+            ctx.fillText(`Sheep Lost: ${5 - lives}`, 660, 30); // Updated to show sheep lost
 
             // Game over
             if (lives <= 0) {
