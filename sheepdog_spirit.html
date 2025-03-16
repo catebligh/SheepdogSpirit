@@ -223,6 +223,20 @@
             return false;
         }
 
+        // Helper function to draw multiline text
+        function drawMultilineText(lines, x, y, lineHeight) {
+            lines.forEach((line, index) => {
+                const textWidth = ctx.measureText(line).width;
+                ctx.fillText(line, x - textWidth / 2, y + index * lineHeight);
+            });
+        }
+
+        // Helper function to draw centered text (for single-line text)
+        function drawCenteredText(text, x, y) {
+            const textWidth = ctx.measureText(text).width;
+            ctx.fillText(text, x - textWidth / 2, y);
+        }
+
         // Game loop
         function gameLoop(timestamp) {
             // Update Spirit's position
@@ -353,17 +367,53 @@
             ctx.fillRect(10, 10, 140, 30); // Background for Score
             ctx.fillRect(650, 10, 140, 30); // Background for Sheep Lost
 
-            ctx.fillStyle = 'white';
             ctx.font = '20px Arial';
-            ctx.fillText(`Score: ${score}`, 20, 30);
-            ctx.fillText(`Sheep Lost: ${5 - lives}`, 660, 30); // Updated to show sheep lost
 
-            // Game over
+            // Draw Score in white
+            ctx.fillStyle = 'white';
+            ctx.fillText(`Score: ${score}`, 20, 30);
+
+            // Determine color for Sheep Lost
+            const sheepLost = 5 - lives;
+            let sheepLostColor;
+            if (sheepLost <= 1) {
+                sheepLostColor = 'white';
+            } else if (sheepLost <= 3) {
+                sheepLostColor = 'yellow';
+            } else if (sheepLost === 4) {
+                sheepLostColor = 'orange';
+            } else {
+                sheepLostColor = 'red';
+            }
+
+            // Draw Sheep Lost with the determined color
+            ctx.fillStyle = sheepLostColor;
+            ctx.fillText(`Sheep Lost: ${sheepLost}`, 660, 30);
+
+            // Game over condition
             if (lives <= 0) {
+                // Draw semi-transparent black background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, 800, 600);
+
+                // Define game over lines
+                const gameOverLines = [
+                    "GAME OVER",
+                    "Spirit the Sheepdog lost too many sheep beyond the crumbling stone wall!",
+                    "Refresh the page to try again."
+                ];
+
+                // Draw game over message
+                ctx.font = '20px Arial';
                 ctx.fillStyle = 'red';
-                ctx.font = '32px Arial';
-                ctx.fillText('Game Over', 350, 300);
-                return;
+                drawMultilineText(gameOverLines, 400, 250, 30);
+
+                // Draw final score
+                ctx.font = '24px Arial';
+                ctx.fillStyle = 'white';
+                const finalScoreText = `Your Final Score: ${score}`;
+                drawCenteredText(finalScoreText, 400, 350);
+                return; // Stop the game loop
             }
 
             requestAnimationFrame(gameLoop);
