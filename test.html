@@ -31,22 +31,30 @@
             font-style: normal;
         }
         .game-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            padding-bottom: 75%; /* 4:3 aspect ratio */
-            margin: 0 auto;
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 1px solid black;
-            background-color: #32CD32; /* Green field */
-            touch-action: none; /* Prevents default touch behaviors */
-        }
+    position: relative;
+    width: 100%;
+    max-width: 800px; /* Prevents the wrapper from growing beyond 800px */
+    padding-bottom: 75%; /* Maintains the 4:3 aspect ratio (600/800 = 0.75) */
+    margin: 0 auto; /* Centers the game horizontally */
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensures the canvas fits without distorting */
+}
+
+/* Media query for desktop screens */
+@media (min-width: 800px) {
+    .game-wrapper {
+        width: 800px;
+        height: 600px;
+        padding-bottom: 0; /* Removes padding on larger screens for fixed size */
+    }
+}
     </style>
 </head>
 <body>
