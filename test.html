@@ -11,7 +11,7 @@
             flex-direction: column;
             align-items: center;
             background-color: #87CEEB; /* Light blue sky background */
-            color: black;
+            color: black; /* Text color */
             font-family: "owners-narrow", sans-serif;
         }
         h1 {
@@ -68,7 +68,7 @@
         let showBarkBubble = false;
         let barkBubbleEndTime = 0;
 
-        // Spirit (Sheepdog)
+        // Spirit (Border Collie)
         const spirit = {
             x: 400,
             y: 300,
@@ -249,28 +249,69 @@
             return false;
         }
 
-        // Draw Spirit
+        // Draw Spirit with detailed styling
         function drawSpirit() {
-            ctx.fillStyle = 'black';
-            ctx.fillRect(spirit.x, spirit.y, spirit.width, spirit.height);
+            ctx.fillStyle = '#101010'; // Dark outline
+            ctx.fillRect(spirit.x + 2, spirit.y + 2, spirit.width - 4, spirit.height - 4); // Body outline
+            ctx.fillStyle = 'white'; // Main fur
+            ctx.fillRect(spirit.x + 4, spirit.y + 4, spirit.width - 8, spirit.height - 6); // Body
+            ctx.fillStyle = 'black'; // Black fur patches
+            ctx.fillRect(spirit.x + 4, spirit.y + 4, 6, 4); // Head patch
+            ctx.fillRect(spirit.x + spirit.width - 8, spirit.y + 2, 6, 8); // Tail
+            ctx.fillStyle = '#606060'; // Shading
+            ctx.fillRect(spirit.x + 4, spirit.y + 8, 4, 4); // Body shade
+            ctx.fillRect(spirit.x + spirit.width - 8, spirit.y + 10, 4, 2); // Tail shade
+            ctx.fillStyle = 'black'; // Legs and ears
+            ctx.fillRect(spirit.x + 6, spirit.y + spirit.height - 4, 2, 4); // Front leg 1
+            ctx.fillRect(spirit.x + 10, spirit.y + spirit.height - 4, 2, 4); // Front leg 2
+            ctx.fillRect(spirit.x + 16, spirit.y + spirit.height - 4, 2, 4); // Back leg 1
+            ctx.fillRect(spirit.x + 22, spirit.y + spirit.height - 4, 2, 4); // Back leg 2
+            ctx.fillRect(spirit.x + 4, spirit.y, 4, 2); // Ear 1
+            ctx.fillRect(spirit.x + 8, spirit.y + 2, 2, 2); // Ear 2
+            ctx.fillStyle = 'white'; // Face
+            ctx.fillRect(spirit.x + 6, spirit.y + 4, 4, 4);
+            ctx.fillStyle = '#404040'; // Nose
+            ctx.fillRect(spirit.x + 4, spirit.y + 8, 2, 2);
+            ctx.fillStyle = '#808080'; // Eye
+            ctx.fillRect(spirit.x + 8, spirit.y + 6, 2, 2);
+            // Smoother edges
+            ctx.fillStyle = 'white';
+            ctx.fillRect(spirit.x + 2, spirit.y + 6, 2, 2); // Head curve
+            ctx.fillRect(spirit.x + spirit.width - 4, spirit.y + 4, 2, 4); // Tail curve
+
+            // Bark bubble
             if (showBarkBubble) {
                 ctx.fillStyle = 'white';
-                ctx.fillRect(spirit.x + spirit.width, spirit.y - 10, 30, 20);
+                ctx.fillRect(spirit.x + spirit.width, spirit.y - 10, 30, 12); // Bubble
                 ctx.fillStyle = 'black';
-                ctx.font = '12px owners-narrow';
-                ctx.fillText('Woof!', spirit.x + spirit.width + 5, spirit.y + 5);
+                ctx.font = '10px Arial';
+                ctx.fillText('Bark!', spirit.x + spirit.width + 2, spirit.y); // Text
             }
         }
 
-        // Draw Sheep
+        // Draw Sheep with detailed styling
         function drawSheep(sheep) {
-            ctx.fillStyle = 'white';
-            ctx.fillRect(sheep.x, sheep.y, sheep.width, sheep.height);
-            ctx.fillStyle = 'black';
-            ctx.fillRect(sheep.x + 5, sheep.y + 5, 5, 5); // Eye
+            ctx.fillStyle = '#B0B0B0'; // Wool base
+            ctx.fillRect(sheep.x + 2, sheep.y + 2, sheep.width - 4, sheep.height - 4); // Main body
+            ctx.fillStyle = 'white'; // Wool highlights
+            ctx.fillRect(sheep.x + 4, sheep.y + 4, sheep.width - 8, sheep.height - 6); // Inner wool
+            ctx.fillStyle = '#D3D3D3'; // Wool texture
+            ctx.fillRect(sheep.x + 6, sheep.y + 6, 8, 6);
+            ctx.fillRect(sheep.x + 18, sheep.y + 8, 8, 4);
+            ctx.fillStyle = '#808080'; // Wool shading
+            ctx.fillRect(sheep.x + 4, sheep.y + sheep.height - 6, 8, 4);
+            ctx.fillRect(sheep.x + 18, sheep.y + sheep.height - 6, 8, 4);
+            ctx.fillStyle = 'black'; // Legs and face
+            ctx.fillRect(sheep.x + 6, sheep.y + sheep.height - 4, 4, 4); // Leg 1
+            ctx.fillRect(sheep.x + 12, sheep.y + sheep.height - 4, 4, 4); // Leg 2
+            ctx.fillRect(sheep.x + 20, sheep.y + sheep.height - 4, 4, 4); // Leg 3
+            ctx.fillRect(sheep.x + 28, sheep.y + sheep.height - 4, 4, 4); // Leg 4
+            ctx.fillRect(sheep.x + sheep.width - 8, sheep.y + 6, 6, 8); // Face
+            ctx.fillStyle = '#404040'; // Face shading
+            ctx.fillRect(sheep.x + sheep.width - 6, sheep.y + 8, 4, 2);
         }
 
-        // Draw multiline text
+        // Helper functions for text
         function drawMultilineText(lines, x, y, lineHeight) {
             lines.forEach((line, index) => {
                 const textWidth = ctx.measureText(line).width;
@@ -278,7 +319,6 @@
             });
         }
 
-        // Draw centered text
         function drawCenteredText(text, x, y) {
             const textWidth = ctx.measureText(text).width;
             ctx.fillText(text, x - textWidth / 2, y);
@@ -286,7 +326,7 @@
 
         // Game loop
         function gameLoop(timestamp) {
-            // Update Spirit
+            // Update Spirit's position
             if (keys.ArrowLeft) spirit.x -= spirit.speed;
             if (keys.ArrowRight) spirit.x += spirit.speed;
             if (keys.ArrowUp) spirit.y -= spirit.speed;
@@ -314,7 +354,7 @@
                 lastCrumbleTime = timestamp;
             }
 
-            // Update sheep
+            // Update sheep positions
             sheepList.forEach((sheep, index) => {
                 const dx = spirit.x - sheep.x;
                 const dy = spirit.y - sheep.y;
@@ -372,6 +412,15 @@
             ctx.fillRect(50, 0, 10, 300); // Left above gate
             ctx.fillRect(50, 340, 10, 260); // Left below gate
             ctx.fillRect(790, 0, 10, 600); // Right
+            ctx.fillStyle = '#808080';
+            for (let i = 0; i < 800; i += 20) {
+                ctx.fillRect(i, 0, 10, 5); // Top texture
+                ctx.fillRect(i, 595, 10, 5); // Bottom texture
+            }
+            for (let i = 0; i < 600; i += 20) {
+                ctx.fillRect(795, i, 5, 10); // Right texture
+                if (i < 300 || i > 340) ctx.fillRect(55, i, 5, 10); // Left texture
+            }
 
             // Wall gaps
             ctx.fillStyle = '#32CD32';
@@ -381,6 +430,11 @@
             ctx.fillStyle = '#8B4513';
             ctx.fillRect(10, 300, 40, 10); // Top
             ctx.fillRect(10, 330, 40, 10); // Bottom
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(12, 302, 8, 6); // Top texture
+            ctx.fillRect(32, 302, 8, 6); // Top texture
+            ctx.fillRect(12, 332, 8, 6); // Bottom texture
+            ctx.fillRect(32, 332, 8, 6); // Bottom texture
 
             // Draw Spirit and Sheep
             drawSpirit();
@@ -392,10 +446,10 @@
             ctx.fillRect(650, 10, 140, 30);
             ctx.font = '20px owners-narrow';
             ctx.fillStyle = 'white';
-            ctx.fillText(`SCORE: ${score}`, 20, 30);
+            ctx.fillText(`Score: ${score}`, 20, 30);
             const sheepLost = 5 - lives;
             ctx.fillStyle = sheepLost <= 1 ? 'white' : sheepLost <= 3 ? 'yellow' : sheepLost === 4 ? 'orange' : 'red';
-            ctx.fillText(`SHEEP LOST: ${sheepLost}`, 660, 30);
+            ctx.fillText(`Sheep Lost: ${sheepLost}`, 660, 30);
 
             // Game over
             if (lives <= 0) {
@@ -405,7 +459,7 @@
                 ctx.fillStyle = 'red';
                 drawMultilineText([
                     "GAME OVER",
-                    "Spirit lost too many sheep!",
+                    "Spirit the Sheepdog lost too many sheep beyond the crumbling stone wall!",
                     "Refresh to try again."
                 ], 400, 250, 30);
                 ctx.font = '24px owners-narrow';
