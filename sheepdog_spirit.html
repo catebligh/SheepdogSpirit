@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <title>Sheepdog Spirit</title>
     <link rel="stylesheet" href="https://use.typekit.net/kmh8zve.css">
@@ -12,7 +11,7 @@
             flex-direction: column;
             align-items: center;
             background-color: #87CEEB; /* Light blue sky background */
-            color: black; /* White text for contrast */
+            color: black; /* Text color */
             font-family: "owners-narrow", sans-serif;
         }
         h1 {
@@ -31,17 +30,41 @@
             font-weight: 400;
             font-style: normal;
         }
-        canvas {
-            border: 1px solid black;
-            background-color: #32CD32; /* Green field for the game */
-        }
+        .game-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px; /* Prevents the wrapper from growing beyond 800px */
+    padding-bottom: 75%; /* Maintains the 4:3 aspect ratio (600/800 = 0.75) */
+    margin: 0 auto; /* Centers the game horizontally */
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensures the canvas fits without distorting */
+    border: 1px solid black;
+    background-color: #32CD32; /* Green field for the game */
+}
+
+/* Media query for desktop screens */
+@media (min-width: 800px) {
+    .game-wrapper {
+        width: 800px;
+        height: 600px;
+        padding-bottom: 0; /* Removes padding on larger screens for fixed size */
+    }
+}
     </style>
-    
 </head>
 <body>
     <h1>Sheepdog Spirit!</h1>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <p>Use arrow keys to move Spirit. Herd sheep into the gate to score points.<br>Press space to bark (costs 5 points). Don’t let them escape through the wall gaps!</p>
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+    <p>Use arrow keys, or drag your finger, to move Spirit. Herd sheep into the gate to score points.<br>Press space, or double-tap, to bark (costs 5 points). Don’t let them escape through the wall gaps!</p>
     <p>Made by <a href="https://www.catebligh.com" target="_blank">Cate Bligh</a> with <a href="https://www.grok.com" target="_blank">Grok</a></p>
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -49,9 +72,9 @@
 
         // Game state
         let score = 0;
-        let lives = 5; // Represents the number of sheep that can still be lost
+        let lives = 5; // Number of sheep that can still be lost
         let lastBarkTime = 0;
-        const barkCooldown = 500; // 0.5 seconds in milliseconds
+        const barkCooldown = 500; // 0.5 seconds
         let showBarkBubble = false;
         let barkBubbleEndTime = 0;
 
@@ -64,7 +87,179 @@
             speed: 4
         };
 
-        // Draw Spirit
+        // Sheep array and creation
+        const sheepList = [];
+        function createSheep() {
+            return {
+                x: 200 + Math.random() * 500,
+                y: 50 + Math.random() * 450,
+                width: 36,
+                height: 24,
+                speed: 1,
+                directionX: (Math.random() - 0.5) * 0.5,
+                directionY: (Math.random() - 0.5) * 0.5,
+                barkedAt: 0,
+                barkDuration: 1000,
+                spooked: false
+            };
+        }
+
+        // Wall gaps (crumbling)
+        const wallGaps = [];
+        let lastCrumbleTime = 0;
+        const crumbleInterval = 10000;
+
+        // Input handling
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            ArrowDown: false,
+            Space: false
+        };
+
+        // Touch controls
+        let isDragging = false;
+        let startPos = { x: 0, y: 0 };
+        let lastTapTime = 0;
+        const doubleTapThreshold = 300; // ms
+        const tapMovementThreshold = 10; // pixels
+
+        // Touch event listeners
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startPos = { x: touch.clientX, y: touch.clientY };
+            isDragging = false;
+
+            const currentTime = performance.now();
+            if (currentTime - lastTapTime < doubleTapThreshold) {
+                if (score > 0 && currentTime - lastBarkTime >= barkCooldown) {
+                    bark(currentTime);
+                }
+            }
+            lastTapTime = currentTime;
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = touch.clientX - startPos.x;
+            const dy = touch.clientY - startPos.y;
+
+            if (!isDragging && (Math.abs(dx) > tapMovementThreshold || Math.abs(dy) > tapMovementThreshold)) {
+                isDragging = true;
+            }
+
+            if (isDragging) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    keys.ArrowLeft = dx < 0;
+                    keys.ArrowRight = dx > 0;
+                    keys.ArrowUp = false;
+                    keys.ArrowDown = false;
+                } else {
+                    keys.ArrowUp = dy < 0;
+                    keys.ArrowDown = dy > 0;
+                    keys.ArrowLeft = false;
+                    keys.ArrowRight = false;
+                }
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.ArrowLeft = false;
+            keys.ArrowRight = false;
+            keys.ArrowUp = false;
+            keys.ArrowDown = false;
+            isDragging = false;
+        }, { passive: false });
+
+        // Keyboard controls
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = true;
+                if (e.code === 'Space' && score > 0 && performance.now() - lastBarkTime >= barkCooldown) {
+                    bark(performance.now());
+                }
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.code)) keys[e.code] = false;
+        });
+
+        // Bark function
+        function bark(timestamp) {
+            lastBarkTime = timestamp;
+            showBarkBubble = true;
+            barkBubbleEndTime = timestamp + 500;
+            score = Math.max(0, score - 5);
+            sheepList.forEach(sheep => {
+                const dx = spirit.x - sheep.x;
+                const dy = spirit.y - sheep.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 150) {
+                    sheep.barkedAt = timestamp;
+                    sheep.directionX = -2;
+                    sheep.directionY = (sheep.y < spirit.y ? -2 : 2);
+                }
+            });
+        }
+
+        // Sheep spawning
+        let lastSpawnTime = 0;
+        const spawnInterval = 3000;
+
+        // Find nearest sheep
+        function findNearestSheep(sheep) {
+            let nearest = null;
+            let minDist = Infinity;
+            sheepList.forEach(other => {
+                if (other !== sheep) {
+                    const dx = other.x - sheep.x;
+                    const dy = other.y - sheep.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist && dist > 0) {
+                        minDist = dist;
+                        nearest = other;
+                    }
+                }
+            });
+            return nearest;
+        }
+
+        // Collision with walls and gate
+        function checkCollisions(sheep) {
+            if (sheep.x < 50 && (sheep.y + sheep.height < 300 || sheep.y > 340)) {
+                sheep.x = 50;
+                sheep.directionX = -sheep.directionX;
+            }
+            if (sheep.x + sheep.width > 790 && !checkWallGapEscape(sheep)) {
+                sheep.x = 790 - sheep.width;
+                sheep.directionX = -sheep.directionX;
+            }
+            if (sheep.y < 10 && !checkWallGapEscape(sheep)) {
+                sheep.y = 10;
+                sheep.directionY = -sheep.directionY;
+            }
+            if (sheep.y + sheep.height > 590 && !checkWallGapEscape(sheep)) {
+                sheep.y = 590 - sheep.height;
+                sheep.directionY = -sheep.directionY;
+            }
+        }
+
+        // Check wall gap escape
+        function checkWallGapEscape(sheep) {
+            for (let gap of wallGaps) {
+                if (sheep.x + sheep.width > gap.x && sheep.x < gap.x + gap.width &&
+                    sheep.y + sheep.height > gap.y && sheep.y < gap.y + gap.height) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Draw Spirit with detailed styling
         function drawSpirit() {
             ctx.fillStyle = '#101010'; // Dark outline
             ctx.fillRect(spirit.x + 2, spirit.y + 2, spirit.width - 4, spirit.height - 4); // Body outline
@@ -104,24 +299,7 @@
             }
         }
 
-        // Sheep array and creation function
-        const sheepList = [];
-        function createSheep() {
-            return {
-                x: 200 + Math.random() * 500,
-                y: 50 + Math.random() * 450,
-                width: 36,
-                height: 24,
-                speed: 1,
-                directionX: (Math.random() - 0.5) * 0.5,
-                directionY: (Math.random() - 0.5) * 0.5,
-                barkedAt: 0,
-                barkDuration: 1000,
-                spooked: false
-            };
-        }
-
-        // Draw Sheep
+        // Draw Sheep with detailed styling
         function drawSheep(sheep) {
             ctx.fillStyle = '#B0B0B0'; // Wool base
             ctx.fillRect(sheep.x + 2, sheep.y + 2, sheep.width - 4, sheep.height - 4); // Main body
@@ -143,110 +321,7 @@
             ctx.fillRect(sheep.x + sheep.width - 6, sheep.y + 8, 4, 2);
         }
 
-        // Keyboard controls
-        const keys = {
-            ArrowLeft: false,
-            ArrowRight: false,
-            ArrowUp: false,
-            ArrowDown: false,
-            Space: false
-        };
-        window.addEventListener('keydown', (e) => {
-            if (keys.hasOwnProperty(e.code)) {
-                keys[e.code] = true;
-                if (e.code === 'Space' && score > 0) { // Only bark if score > 0
-                    const currentTime = performance.now();
-                    if (currentTime - lastBarkTime >= barkCooldown) {
-                        bark(currentTime); // Trigger bark visuals and score deduction
-                    }
-                }
-            }
-        });
-        window.addEventListener('keyup', (e) => {
-            if (keys.hasOwnProperty(e.code)) keys[e.code] = false;
-        });
-
-        // Bark function (visuals and score only)
-        function bark(timestamp) {
-            lastBarkTime = timestamp;
-            showBarkBubble = true;
-            barkBubbleEndTime = timestamp + 500; // Display for 0.5 seconds
-            score = Math.max(0, score - 5); // Deduct 5 points
-            sheepList.forEach(sheep => {
-                const dx = spirit.x - sheep.x;
-                const dy = spirit.y - sheep.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < 150) { // Increased range
-                    sheep.barkedAt = timestamp;
-                    sheep.directionX = -2; // Stronger push
-                    sheep.directionY = (sheep.y < spirit.y ? -2 : 2); // Directional push
-                }
-            });
-        }
-
-        // Sheep spawning
-        let lastSpawnTime = 0;
-        const spawnInterval = 3000;
-
-        // Wall gaps (crumbling)
-        const wallGaps = [];
-        let lastCrumbleTime = 0;
-        const crumbleInterval = 10000;
-
-        // Find nearest sheep
-        function findNearestSheep(sheep) {
-            let nearest = null;
-            let minDist = Infinity;
-            sheepList.forEach(other => {
-                if (other !== sheep) {
-                    const dx = other.x - sheep.x;
-                    const dy = other.y - sheep.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < minDist && dist > 0) {
-                        minDist = dist;
-                        nearest = other;
-                    }
-                }
-            });
-            return nearest;
-        }
-
-        // Collision with walls and fence
-        function checkCollisions(sheep) {
-            // Left wall (except gate)
-            if (sheep.x < 50 && (sheep.y + sheep.height < 300 || sheep.y > 340)) {
-                sheep.x = 50;
-                sheep.directionX = -sheep.directionX;
-            }
-
-            // Wall boundaries (allow escape through gaps)
-            if (sheep.x + sheep.width > 790 && !checkWallGapEscape(sheep)) {
-                sheep.x = 790 - sheep.width;
-                sheep.directionX = -sheep.directionX;
-            }
-            if (sheep.y < 10 && !checkWallGapEscape(sheep)) {
-                sheep.y = 10;
-                sheep.directionY = -sheep.directionY;
-            }
-            if (sheep.y + sheep.height > 590 && !checkWallGapEscape(sheep)) {
-                sheep.y = 590 - sheep.height;
-                sheep.directionY = -sheep.directionY;
-            }
-        }
-
-        // Check if sheep escapes through a wall gap
-        function checkWallGapEscape(sheep) {
-            for (let i = 0; i < wallGaps.length; i++) {
-                const gap = wallGaps[i];
-                if (sheep.x + sheep.width > gap.x && sheep.x < gap.x + gap.width &&
-                    sheep.y + sheep.height > gap.y && sheep.y < gap.y + gap.height) {
-                    return true; // Sheep is in a gap
-                }
-            }
-            return false;
-        }
-
-        // Helper function to draw multiline text
+        // Helper functions for text
         function drawMultilineText(lines, x, y, lineHeight) {
             lines.forEach((line, index) => {
                 const textWidth = ctx.measureText(line).width;
@@ -254,7 +329,6 @@
             });
         }
 
-        // Helper function to draw centered text (for single-line text)
         function drawCenteredText(text, x, y) {
             const textWidth = ctx.measureText(text).width;
             ctx.fillText(text, x - textWidth / 2, y);
@@ -271,9 +345,7 @@
             spirit.y = Math.max(10, Math.min(590 - spirit.height, spirit.y));
 
             // Bark bubble timer
-            if (showBarkBubble && timestamp > barkBubbleEndTime) {
-                showBarkBubble = false;
-            }
+            if (showBarkBubble && timestamp > barkBubbleEndTime) showBarkBubble = false;
 
             // Spawn sheep
             if (timestamp - lastSpawnTime > spawnInterval) {
@@ -283,7 +355,7 @@
 
             // Crumble walls
             if (timestamp - lastCrumbleTime > crumbleInterval) {
-                const side = Math.floor(Math.random() * 3); // 0: top, 1: right, 2: bottom
+                const side = Math.floor(Math.random() * 3);
                 let gap;
                 if (side === 0) gap = { x: 50 + Math.random() * 700, y: 0, width: 20, height: 10 };
                 else if (side === 1) gap = { x: 790, y: 50 + Math.random() * 500, width: 10, height: 20 };
@@ -294,7 +366,6 @@
 
             // Update sheep positions
             sheepList.forEach((sheep, index) => {
-                // Proximity reaction to Spirit
                 const dx = spirit.x - sheep.x;
                 const dy = spirit.y - sheep.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -307,7 +378,6 @@
                     setTimeout(() => { sheep.spooked = false; sheep.speed = 1; }, 1000);
                 }
 
-                // Herd together
                 if (sheep.spooked) {
                     const nearest = findNearestSheep(sheep);
                     if (nearest) {
@@ -321,10 +391,9 @@
                     }
                 }
 
-                // Bark effect
                 if (timestamp - sheep.barkedAt < sheep.barkDuration) {
-                    sheep.directionX = -2; // Stronger push
-                    sheep.directionY = (sheep.y < spirit.y ? -2 : 2); // Directional push
+                    sheep.directionX = -2;
+                    sheep.directionY = (sheep.y < spirit.y ? -2 : 2);
                 } else if (!sheep.spooked) {
                     sheep.directionX = (Math.random() - 0.5) * 0.5;
                     sheep.directionY = (Math.random() - 0.5) * 0.5;
@@ -334,14 +403,11 @@
                 sheep.y += sheep.directionY;
                 checkCollisions(sheep);
 
-                // Check gate
                 if (sheep.x > 10 && sheep.x < 50 && sheep.y > 300 && sheep.y < 340) {
                     score += 10;
                     sheepList.splice(index, 1);
-                }
-                // Check wall gap escape
-                else if (checkWallGapEscape(sheep)) {
-                    lives--; // Lose one life per sheep escaping through a gap
+                } else if (checkWallGapEscape(sheep)) {
+                    lives--;
                     sheepList.splice(index, 1);
                 }
             });
@@ -349,14 +415,14 @@
             // Draw everything
             ctx.clearRect(0, 0, 800, 600);
 
-            // Draw stone wall
-            ctx.fillStyle = '#606060'; // Darker gray stone
+            // Stone walls
+            ctx.fillStyle = '#606060';
             ctx.fillRect(0, 0, 800, 10); // Top
             ctx.fillRect(0, 590, 800, 10); // Bottom
-            ctx.fillRect(50, 0, 10, 300); // Left wall above gate
-            ctx.fillRect(50, 340, 10, 260); // Left wall below gate
+            ctx.fillRect(50, 0, 10, 300); // Left above gate
+            ctx.fillRect(50, 340, 10, 260); // Left below gate
             ctx.fillRect(790, 0, 10, 600); // Right
-            ctx.fillStyle = '#808080'; // Lighter stone texture
+            ctx.fillStyle = '#808080';
             for (let i = 0; i < 800; i += 20) {
                 ctx.fillRect(i, 0, 10, 5); // Top texture
                 ctx.fillRect(i, 595, 10, 5); // Bottom texture
@@ -366,77 +432,50 @@
                 if (i < 300 || i > 340) ctx.fillRect(55, i, 5, 10); // Left texture
             }
 
-            // Draw wall gaps
-            ctx.fillStyle = '#32CD32'; // Field color for gaps
-            wallGaps.forEach(gap => {
-                ctx.fillRect(gap.x, gap.y, gap.width, gap.height);
-            });
+            // Wall gaps
+            ctx.fillStyle = '#32CD32';
+            wallGaps.forEach(gap => ctx.fillRect(gap.x, gap.y, gap.width, gap.height));
 
-            // Draw wooden gate (perpendicular, opening into field)
-            ctx.fillStyle = '#8B4513'; // Brown wood
-            ctx.fillRect(10, 300, 40, 10); // Top gate post
-            ctx.fillRect(10, 330, 40, 10); // Bottom gate post
-            ctx.fillStyle = '#A0522D'; // Wood texture
+            // Wooden gate
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(10, 300, 40, 10); // Top
+            ctx.fillRect(10, 330, 40, 10); // Bottom
+            ctx.fillStyle = '#A0522D';
             ctx.fillRect(12, 302, 8, 6); // Top texture
             ctx.fillRect(32, 302, 8, 6); // Top texture
             ctx.fillRect(12, 332, 8, 6); // Bottom texture
             ctx.fillRect(32, 332, 8, 6); // Bottom texture
 
+            // Draw Spirit and Sheep
             drawSpirit();
             sheepList.forEach(drawSheep);
 
-            // HUD with improved readability
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent black background
-            ctx.fillRect(10, 10, 140, 30); // Background for Score
-            ctx.fillRect(650, 10, 140, 30); // Background for Sheep Lost
-
+            // HUD
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(10, 10, 140, 30);
+            ctx.fillRect(650, 10, 140, 30);
             ctx.font = '20px owners-narrow';
-
-            // Draw Score in white
             ctx.fillStyle = 'white';
-            ctx.fillText(`SCORE: ${score}`, 20, 30);
-
-            // Determine color for Sheep Lost
+            ctx.fillText(`Score: ${score}`, 20, 30);
             const sheepLost = 5 - lives;
-            let sheepLostColor;
-            if (sheepLost <= 1) {
-                sheepLostColor = 'white';
-            } else if (sheepLost <= 3) {
-                sheepLostColor = 'yellow';
-            } else if (sheepLost === 4) {
-                sheepLostColor = 'orange';
-            } else {
-                sheepLostColor = 'red';
-            }
+            ctx.fillStyle = sheepLost <= 1 ? 'white' : sheepLost <= 3 ? 'yellow' : sheepLost === 4 ? 'orange' : 'red';
+            ctx.fillText(`Sheep Lost: ${sheepLost}`, 660, 30);
 
-            // Draw Sheep Lost with the determined color
-            ctx.fillStyle = sheepLostColor;
-            ctx.fillText(`SHEEP LOST: ${sheepLost}`, 660, 30);
-
-            // Game over condition
+            // Game over
             if (lives <= 0) {
-                // Draw semi-transparent black background
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, 800, 600);
-
-                // Define game over lines
-                const gameOverLines = [
-                    "GAME OVER",
-                    "Spirit the Sheepdog lost too many sheep beyond the crumbling stone wall!",
-                    "Refresh the page to try again."
-                ];
-
-                // Draw game over message
                 ctx.font = '20px owners-narrow';
                 ctx.fillStyle = 'red';
-                drawMultilineText(gameOverLines, 400, 250, 30);
-
-                // Draw final score
+                drawMultilineText([
+                    "GAME OVER",
+                    "Spirit the Sheepdog lost too many sheep beyond the crumbling stone wall!",
+                    "Refresh to try again."
+                ], 400, 250, 30);
                 ctx.font = '24px owners-narrow';
                 ctx.fillStyle = 'white';
-                const finalScoreText = `Your Final Score: ${score}`;
-                drawCenteredText(finalScoreText, 400, 350);
-                return; // Stop the game loop
+                drawCenteredText(`Final Score: ${score}`, 400, 350);
+                return;
             }
 
             requestAnimationFrame(gameLoop);
